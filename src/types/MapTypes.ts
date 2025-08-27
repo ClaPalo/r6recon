@@ -1,1 +1,34 @@
-export type Floor = 'basement' | 'first' | 'second' | 'third' | 'fourth' | 'roof'
+export type MapName =
+    | "bank"
+    | "border"
+    | "chalet"
+    | "clubhouse"
+    | "coastline"
+    | "consulate"
+    | "emeraldplains"
+    | "favela"
+    | "fortress"
+    | "herefordbase"
+    | "house"
+    | "kafe"
+    | "kanal"
+    | "lair"
+    | "nighthavenlabs"
+    | "oregon"
+    | "outback"
+    | "presidentialplane"
+    | "skyscraper"
+    | "stadiumbravo"
+    | "stadium2020"
+    | "themepark"
+    | "tower"
+    | "villa"
+    | "yacht";
+
+export type Floor =
+    | "basement"
+    | "first"
+    | "second"
+    | "third"
+    | "fourth"
+    | "roof";
