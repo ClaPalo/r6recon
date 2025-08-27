@@ -1,0 +1,1 @@
+export type Floor = 'basement' | 'first' | 'second' | 'third' | 'fourth' | 'roof'
