@@ -117,10 +117,10 @@ export default function Map(props: MapProps) {
 
     return (
         <div className="flex h-screen flex-col">
-            <div>
+            {/* <div>
                 {location && <h3>{location.toString()}</h3>}
                 <button onClick={() => setShow(!show)}>Click me!</button>
-            </div>
+            </div> */}
             {displayMap}
         </div>
     );
