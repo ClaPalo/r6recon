@@ -82,8 +82,8 @@ export default function Map(props: MapProps) {
     const { mapName, floor } = props;
 
     const [map, setMap] = useState<MapRef>(null);
-    const [location, setLocation] = useState<LatLng>();
-    const [show, setShow] = useState<boolean>(true);
+    const [_, setLocation] = useState<LatLng>();
+    const [show] = useState<boolean>(true);
 
     const onClick = (e: LeafletMouseEvent) => {
         setLocation(e.latlng);
