@@ -82,6 +82,7 @@ export default function Map(props: MapProps) {
     const { mapName, floor } = props;
 
     const [map, setMap] = useState<MapRef>(null);
+    // eslint-disable-next-line
     const [_, setLocation] = useState<LatLng>();
     const [show] = useState<boolean>(true);
 
@@ -102,12 +103,13 @@ export default function Map(props: MapProps) {
                 scrollWheelZoom={true}
                 className="map"
                 crs={CRS.Simple}
-                boundsOptions={{ maxZoom: 0 }}
                 maxBounds={[
                     [-500, -500],
                     [1300, 2000],
                 ]}
                 ref={setMap}
+                zoomControl={false}
+                zoomDelta={0.01}
             >
                 <MapContent show={show} map={mapName} floor={floor} />
             </MapContainer>
@@ -116,7 +118,7 @@ export default function Map(props: MapProps) {
     );
 
     return (
-        <div className="flex h-screen flex-col">
+        <div className="flex h-full flex-col">
             {/* <div>
                 {location && <h3>{location.toString()}</h3>}
                 <button onClick={() => setShow(!show)}>Click me!</button>
