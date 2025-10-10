@@ -118,7 +118,7 @@ export default function Map(props: MapProps) {
     );
 
     return (
-        <div className="flex h-full flex-col">
+        <div className="h-full w-full">
             {/* <div>
                 {location && <h3>{location.toString()}</h3>}
                 <button onClick={() => setShow(!show)}>Click me!</button>

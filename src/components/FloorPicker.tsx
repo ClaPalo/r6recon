@@ -11,8 +11,10 @@ export default function FloorPicker(props: FloorPickerProps) {
     const [selectedFloor, setSelectedFloor] = useState<Floor>("first");
 
     const handleFloorChange = (value: Floor) => {
-        setSelectedFloor(value);
-        onFloorSelected(value);
+        if (value) {
+            setSelectedFloor(value);
+            onFloorSelected(value);
+        }
     };
 
     return (
