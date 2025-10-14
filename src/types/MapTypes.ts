@@ -27,8 +27,8 @@ export type MapName =
 
 export type Floor =
     | "basement"
+    | "ground"
+    | "ground2"
     | "first"
     | "second"
-    | "third"
-    | "fourth"
     | "roof";
