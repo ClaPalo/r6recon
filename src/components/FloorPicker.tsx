@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import type { Floor } from "@/types/MapTypes";
+import useMap from "@/contexts/MapContext";
+import { floors } from "@/config/mapsConfig";
 
 type FloorPickerProps = {
     onFloorSelected: React.Dispatch<React.SetStateAction<Floor>>;
@@ -8,6 +10,10 @@ type FloorPickerProps = {
 
 export default function FloorPicker(props: FloorPickerProps) {
     const { onFloorSelected } = props;
+    const { mapName } = useMap();
+
+    const availableFloors = floors[mapName];
+
     const [selectedFloor, setSelectedFloor] = useState<Floor>("first");
 
     const handleFloorChange = (value: Floor) => {
@@ -24,18 +30,13 @@ export default function FloorPicker(props: FloorPickerProps) {
             type="single"
             variant="outline"
         >
-            <ToggleGroupItem value="basement" className="px-5">
-                Basement
-            </ToggleGroupItem>
-            <ToggleGroupItem value="first" className="px-5">
-                First
-            </ToggleGroupItem>
-            <ToggleGroupItem value="second" className="px-5">
-                Second
-            </ToggleGroupItem>
-            <ToggleGroupItem value="roof" className="px-5">
-                Roof
-            </ToggleGroupItem>
+            {availableFloors?.map((floor) => {
+                return (
+                    <ToggleGroupItem value={floor} className="px-5">
+                        {floor}
+                    </ToggleGroupItem>
+                );
+            })}
         </ToggleGroup>
     );
 }

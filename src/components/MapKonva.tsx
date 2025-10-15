@@ -1,4 +1,5 @@
-import type { Floor, MapName } from "@/types/MapTypes";
+import useMap from "@/contexts/MapContext";
+import type { Floor } from "@/types/MapTypes";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Stage as StageType } from "konva/lib/Stage";
@@ -7,12 +8,12 @@ import { Circle, Group, Image, Layer, Stage } from "react-konva";
 import useImage from "use-image";
 
 type MapProps = {
-    mapName: MapName;
     floor: Floor;
 };
 
 export default function MapKonva(props: MapProps) {
-    const { mapName, floor } = props;
+    const { floor } = props;
+    const { mapName } = useMap();
     const [map] = useImage(`/${mapName}/${floor}.jpg`);
     const stageRef = useRef<Konva.Stage>(null);
 

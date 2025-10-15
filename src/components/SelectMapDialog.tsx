@@ -8,43 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import type { MapName } from "@/types/MapTypes";
 import { useState } from "react";
-
-type SelectMapDialogProps = {
-    onMapSelected: React.Dispatch<React.SetStateAction<MapName>>;
-};
-
-// TODO: Move to JSON
-const maps: MapName[] = [
-    "bank",
-    "border",
-    "chalet",
-    "clubhouse",
-    "coastline",
-    "consulate",
-    "emeraldplains",
-    "favela",
-    "fortress",
-    "herefordbase",
-    "house",
-    "kafe",
-    "kanal",
-    "lair",
-    "nighthavenlabs",
-    "oregon",
-    "outback",
-    "presidentialplane",
-    "skyscraper",
-    "stadiumbravo",
-    "stadium2020",
-    "themepark",
-    "tower",
-    "villa",
-    "yacht",
-];
+import useMap from "@/contexts/MapContext";
+import { floors } from "@/config/mapsConfig";
 
 // TODO: Add component for each map
-export default function SelectMapDialog(props: SelectMapDialogProps) {
-    const { onMapSelected } = props;
+export default function SelectMapDialog() {
+    const { setMapName } = useMap();
+    const availableMaps: MapName[] = Object.keys(floors) as MapName[];
     const [isOpen, setIsOpen] = useState<boolean>(false);
     return (
         <Dialog open={isOpen}>
@@ -60,11 +30,11 @@ export default function SelectMapDialog(props: SelectMapDialogProps) {
                 >
                     <DialogContent className="z-1100 h-4/5 sm:max-w-10/12">
                         <div className="grid grid-cols-4">
-                            {maps.map((mapName: MapName) => {
+                            {availableMaps.map((mapName: MapName) => {
                                 return (
                                     <div
                                         onClick={() => {
-                                            onMapSelected(mapName);
+                                            setMapName(mapName);
                                             setIsOpen(false);
                                         }}
                                     >
