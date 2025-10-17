@@ -3,6 +3,7 @@ import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import type { Floor } from "@/types/MapTypes";
 import useMap from "@/contexts/MapContext";
 import { floors } from "@/config/mapsConfig";
+import upperFirst from "lodash.upperfirst";
 
 type FloorPickerProps = {
     onFloorSelected: React.Dispatch<React.SetStateAction<Floor>>;
@@ -33,7 +34,7 @@ export default function FloorPicker(props: FloorPickerProps) {
             {availableFloors?.map((floor) => {
                 return (
                     <ToggleGroupItem value={floor} className="px-5">
-                        {floor}
+                        {upperFirst(floor)}
                     </ToggleGroupItem>
                 );
             })}

@@ -13,7 +13,7 @@ function App() {
         <>
             <MapProvider>
                 <Navbar onFloorSelected={setFloor} />
-                <div className="flex h-screen flex-row pt-12">
+                <div className="flex h-screen flex-row overflow-hidden pt-12">
                     <Sidebar />
                     <div className="h-full w-full">
                         <MapKonva floor={floor} />

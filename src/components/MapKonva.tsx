@@ -3,7 +3,7 @@ import type { Floor } from "@/types/MapTypes";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Stage as StageType } from "konva/lib/Stage";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Circle, Group, Image, Layer, Stage } from "react-konva";
 import useImage from "use-image";
 
@@ -15,7 +15,53 @@ export default function MapKonva(props: MapProps) {
     const { floor } = props;
     const { mapName } = useMap();
     const [map] = useImage(`/${mapName}/${floor}.jpg`);
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
+    const imageRef = useRef<Konva.Image>(null);
+    const groupRef = useRef<Konva.Group>(null);
+
+    const sceneWidthRef = useRef(window.innerWidth - 0.1 * window.innerWidth);
+    const sceneHeightRef = useRef(
+        window.innerHeight - 0.1 * window.innerHeight,
+    );
+
+    // State to track current scale and dimensions
+    const [stageSize, setStageSize] = useState({
+        width: sceneWidthRef.current,
+        height: sceneHeightRef.current,
+        scale: 1,
+    });
+
+    useEffect(() => {
+        updateSize();
+        window.addEventListener("resize", updateSize);
+
+        return () => {
+            window.removeEventListener("resize", updateSize);
+        };
+    }, []);
+
+    const updateSize = () => {
+        if (!containerRef.current) return;
+
+        const sceneWidth = sceneWidthRef.current;
+        const sceneHeight = sceneHeightRef.current;
+
+        // Get container width
+        const containerWidth = containerRef.current.offsetWidth;
+        const containerHeight = containerRef.current.offsetHeight;
+
+        // Calculate scale
+        const scaleWidth = containerWidth / sceneWidth;
+        const scaleHeight = containerHeight / sceneHeight;
+
+        // Update state with new dimensions
+        setStageSize({
+            width: sceneWidth * scaleWidth,
+            height: sceneHeight * scaleHeight,
+            scale: scaleWidth,
+        });
+    };
 
     const handlePan = (
         e: KonvaEventObject<WheelEvent>,
@@ -50,7 +96,6 @@ export default function MapKonva(props: MapProps) {
             handlePan(e, stage, "x", e.evt.deltaX);
         } else {
             // Vertical wheel
-
             if (e.evt.metaKey) {
                 handlePan(e, stage, "y", e.evt.deltaY);
                 return;
@@ -87,25 +132,28 @@ export default function MapKonva(props: MapProps) {
     };
 
     return (
-        <Stage
-            className="h-full w-full grow-0"
-            width={window.innerWidth - 80}
-            height={window.innerHeight}
-            ref={stageRef}
-            onWheel={handleWheel}
-        >
-            <Layer>
-                <Group draggable>
-                    <Image width={1600} height={900} image={map} />
-                    <Circle
-                        x={200}
-                        y={100}
-                        radius={50}
-                        fill="green"
-                        draggable
-                    />
-                </Group>
-            </Layer>
-        </Stage>
+        <div ref={containerRef} className="h-full w-full">
+            <Stage
+                width={stageSize.width}
+                height={stageSize.height}
+                scaleX={stageSize.scale}
+                scaleY={stageSize.scale}
+                ref={stageRef}
+                onWheel={handleWheel}
+            >
+                <Layer>
+                    <Group ref={groupRef} draggable>
+                        <Image image={map} ref={imageRef} />
+                        <Circle
+                            x={200}
+                            y={100}
+                            radius={50}
+                            fill="green"
+                            draggable
+                        />
+                    </Group>
+                </Layer>
+            </Stage>
+        </div>
     );
 }

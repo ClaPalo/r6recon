@@ -7,7 +7,7 @@ import ColorPicker from "./ColorPicker";
 
 function Sidebar() {
     return (
-        <div className="flex h-full w-20 grow-1 flex-col items-center justify-start gap-5 border-r-1 border-solid border-slate-800 pt-5">
+        <div className="flex h-full w-20 flex-col items-center justify-start gap-5 border-r-1 border-solid border-slate-800 p-5">
             <ColorPicker />
             <FaRunning
                 size={"2rem"}
