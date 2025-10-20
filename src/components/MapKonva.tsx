@@ -2,7 +2,6 @@ import useMap from "@/contexts/MapContext";
 import type { Floor } from "@/types/MapTypes";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { Stage as StageType } from "konva/lib/Stage";
 import { useEffect, useRef } from "react";
 import { Circle, Group, Image, Layer, Stage } from "react-konva";
 import useImage from "use-image";
@@ -11,6 +10,9 @@ import { RxCorners } from "react-icons/rx";
 type MapProps = {
     floor: Floor;
 };
+
+const IMAGE_WIDTH = 1600;
+const IMAGE_HEIGHT = 900;
 
 export default function MapKonva(props: MapProps) {
     const { floor } = props;
@@ -21,8 +23,8 @@ export default function MapKonva(props: MapProps) {
     const imageRef = useRef<Konva.Image>(null);
     const groupRef = useRef<Konva.Group>(null);
 
-    const sceneWidthRef = useRef(1600);
-    const sceneHeightRef = useRef(900);
+    const sceneWidthRef = useRef(IMAGE_WIDTH);
+    const sceneHeightRef = useRef(IMAGE_HEIGHT);
 
     useEffect(() => {
         resetStageSize();
@@ -39,7 +41,6 @@ export default function MapKonva(props: MapProps) {
         if (!group || !stage) return;
 
         resetStageSize();
-        stage.position({ x: 0, y: 0 });
         group.position({ x: 0, y: 0 });
     };
 
@@ -59,8 +60,6 @@ export default function MapKonva(props: MapProps) {
         const scaleWidth = containerWidth / sceneWidth;
         const scaleHeight = containerHeight / sceneHeight;
 
-        console.log(containerWidth);
-
         // Update state with new dimensions
         stage.width(sceneWidth * scaleWidth);
         stage.height(sceneHeight * scaleHeight);
@@ -69,11 +68,14 @@ export default function MapKonva(props: MapProps) {
 
     const handlePan = (
         e: KonvaEventObject<WheelEvent>,
-        stage: StageType,
         axis: "x" | "y",
         delta: number,
     ) => {
         const moveBy = 7.5;
+        const group = groupRef.current;
+        const stage = stageRef.current;
+        if (!group || !stage) return;
+
         let moveX = axis == "x" ? true : false;
         if (e.evt.altKey) {
             moveX = !moveX;
@@ -83,9 +85,22 @@ export default function MapKonva(props: MapProps) {
             direction = -direction;
         }
 
-        stage.move({
-            x: Number(moveX) * direction * moveBy,
-            y: Number(!moveX) * direction * moveBy,
+        const shiftX = Number(moveX) * direction * moveBy;
+        const shiftY = Number(!moveX) * direction * moveBy;
+
+        const tentativeRelativePosition = {
+            x: group.position().x + shiftX,
+            y: group.position().y + shiftY,
+        };
+
+        const newAbsolutePosition = handleDragBoundFunc({
+            x: tentativeRelativePosition.x * stage.scaleX(),
+            y: tentativeRelativePosition.y * stage.scaleY(),
+        });
+
+        group.position({
+            x: newAbsolutePosition.x / stage.scaleX(),
+            y: newAbsolutePosition.y / stage.scaleY(),
         });
     };
 
@@ -93,15 +108,16 @@ export default function MapKonva(props: MapProps) {
         e.evt.preventDefault();
 
         const stage = stageRef.current;
-        if (!stage) return;
+        const group = groupRef.current;
+        if (!stage || !group) return;
 
         if (e.evt.deltaX) {
             // Horizontal wheel -> pan
-            handlePan(e, stage, "x", e.evt.deltaX);
+            handlePan(e, "x", e.evt.deltaX);
         } else {
             // Vertical wheel
             if (e.evt.metaKey) {
-                handlePan(e, stage, "y", e.evt.deltaY);
+                handlePan(e, "y", e.evt.deltaY);
                 return;
             }
 
@@ -111,8 +127,8 @@ export default function MapKonva(props: MapProps) {
             if (!pointer) return;
 
             const mousePointTo = {
-                x: (pointer.x - stage.x()) / oldScale,
-                y: (pointer.y - stage.y()) / oldScale,
+                x: pointer.x / oldScale - group.x(),
+                y: pointer.y / oldScale - group.y(),
             };
 
             let direction = e.evt.deltaY > 0 ? -1 : 1;
@@ -128,11 +144,27 @@ export default function MapKonva(props: MapProps) {
             stage.scale({ x: newScale, y: newScale });
 
             const newPos = {
-                x: pointer.x - mousePointTo.x * newScale,
-                y: pointer.y - mousePointTo.y * newScale,
+                x: pointer.x / newScale - mousePointTo.x,
+                y: pointer.y / newScale - mousePointTo.y,
             };
-            stage.position(newPos);
+            group.position(newPos);
         }
+    };
+
+    const handleDragBoundFunc = (pos: { x: number; y: number }) => {
+        const group = groupRef.current;
+        const stage = stageRef.current;
+        const image = imageRef.current;
+        if (!group || !stage || !image) return pos;
+
+        const minX = -0.9 * stage.width();
+        const minY = -0.9 * image.height() * stage.scaleY();
+        const maxX = 0.9 * stage.width();
+        const maxY = 0.9 * stage.height();
+
+        const newX = Math.max(minX, Math.min(pos.x, maxX));
+        const newY = Math.max(minY, Math.min(pos.y, maxY));
+        return { x: newX, y: newY };
     };
 
     return (
@@ -145,7 +177,11 @@ export default function MapKonva(props: MapProps) {
             </div>
             <Stage ref={stageRef} onWheel={handleWheel}>
                 <Layer>
-                    <Group ref={groupRef} draggable>
+                    <Group
+                        ref={groupRef}
+                        draggable
+                        dragBoundFunc={handleDragBoundFunc}
+                    >
                         <Image image={map} ref={imageRef} />
                         <Circle
                             x={200}

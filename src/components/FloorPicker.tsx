@@ -33,7 +33,7 @@ export default function FloorPicker(props: FloorPickerProps) {
         >
             {availableFloors?.map((floor) => {
                 return (
-                    <ToggleGroupItem value={floor} className="px-5">
+                    <ToggleGroupItem value={floor} key={floor} className="px-5">
                         {upperFirst(floor)}
                     </ToggleGroupItem>
                 );
