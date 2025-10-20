@@ -12,11 +12,15 @@ function App() {
     return (
         <>
             <MapProvider>
-                <Navbar onFloorSelected={setFloor} />
-                <div className="flex h-screen flex-row overflow-hidden pt-12">
-                    <Sidebar />
-                    <div className="h-full w-full">
-                        <MapKonva floor={floor} />
+                <div className="flex h-screen w-screen flex-col">
+                    <Navbar onFloorSelected={setFloor} />
+                    <div className="flex w-screen flex-1 flex-row">
+                        <div className="h-full">
+                            <Sidebar />
+                        </div>
+                        <div className="min-h-0 min-w-0 flex-1 shrink">
+                            <MapKonva floor={floor} />
+                        </div>
                     </div>
                 </div>
             </MapProvider>
