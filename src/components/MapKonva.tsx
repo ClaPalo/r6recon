@@ -13,6 +13,8 @@ type MapProps = {
 
 const IMAGE_WIDTH = 1600;
 const IMAGE_HEIGHT = 900;
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 10;
 
 export default function MapKonva(props: MapProps) {
     const { floor } = props;
@@ -141,13 +143,14 @@ export default function MapKonva(props: MapProps) {
             const newScale =
                 direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
 
-            stage.scale({ x: newScale, y: newScale });
-
-            const newPos = {
-                x: pointer.x / newScale - mousePointTo.x,
-                y: pointer.y / newScale - mousePointTo.y,
-            };
-            group.position(newPos);
+            if (newScale >= MIN_SCALE && newScale <= MAX_SCALE) {
+                stage.scale({ x: newScale, y: newScale });
+                const newPos = {
+                    x: pointer.x / newScale - mousePointTo.x,
+                    y: pointer.y / newScale - mousePointTo.y,
+                };
+                group.position(newPos);
+            }
         }
     };
 
@@ -157,13 +160,23 @@ export default function MapKonva(props: MapProps) {
         const image = imageRef.current;
         if (!group || !stage || !image) return pos;
 
-        const minX = -0.9 * stage.width();
-        const minY = -0.9 * image.height() * stage.scaleY();
+        const minX = 0.1 * stage.width();
+        const minY = 0.1 * stage.height();
         const maxX = 0.9 * stage.width();
         const maxY = 0.9 * stage.height();
 
-        const newX = Math.max(minX, Math.min(pos.x, maxX));
-        const newY = Math.max(minY, Math.min(pos.y, maxY));
+        const newX =
+            Math.max(
+                minX,
+                Math.min(pos.x, maxX) + image.width() * stage.scaleX(),
+            ) -
+            image.width() * stage.scaleX();
+        const newY =
+            Math.max(
+                minY,
+                Math.min(pos.y, maxY) + image.height() * stage.scaleY(),
+            ) -
+            image.height() * stage.scaleY();
         return { x: newX, y: newY };
     };
 
