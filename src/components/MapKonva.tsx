@@ -95,15 +95,11 @@ export default function MapKonva(props: MapProps) {
             y: group.position().y + shiftY,
         };
 
-        const newAbsolutePosition = handleDragBoundFunc({
-            x: tentativeRelativePosition.x * stage.scaleX(),
-            y: tentativeRelativePosition.y * stage.scaleY(),
-        });
+        const newAbsolutePosition = handleDragBoundFunc(
+            toAbsolute(tentativeRelativePosition),
+        );
 
-        group.position({
-            x: newAbsolutePosition.x / stage.scaleX(),
-            y: newAbsolutePosition.y / stage.scaleY(),
-        });
+        group.position(toRelative(newAbsolutePosition));
     };
 
     const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
@@ -149,9 +145,34 @@ export default function MapKonva(props: MapProps) {
                     x: pointer.x / newScale - mousePointTo.x,
                     y: pointer.y / newScale - mousePointTo.y,
                 };
-                group.position(newPos);
+
+                const newAbsolutePosition = handleDragBoundFunc(
+                    toAbsolute(newPos),
+                );
+
+                group.position(toRelative(newAbsolutePosition));
             }
         }
+    };
+
+    const toRelative = (absolutePosition: { x: number; y: number }) => {
+        const stage = stageRef.current;
+        if (!stage) return { x: 0, y: 0 };
+
+        return {
+            x: absolutePosition.x / stage.scaleX(),
+            y: absolutePosition.y / stage.scaleY(),
+        };
+    };
+
+    const toAbsolute = (relativePosition: { x: number; y: number }) => {
+        const stage = stageRef.current;
+        if (!stage) return { x: 0, y: 0 };
+
+        return {
+            x: relativePosition.x * stage.scaleX(),
+            y: relativePosition.y * stage.scaleY(),
+        };
     };
 
     const handleDragBoundFunc = (pos: { x: number; y: number }) => {
