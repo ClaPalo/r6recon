@@ -2,13 +2,22 @@ import useMap from "@/contexts/MapContext";
 import type { Floor } from "@/types/MapTypes";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useEffect, useRef } from "react";
-import { Circle, Group, Image, Layer, Stage } from "react-konva";
+import {
+    useEffect,
+    useRef,
+    useState,
+    type DragEvent,
+    type RefObject,
+} from "react";
+import { Group, Image, Layer, Path, Stage } from "react-konva";
 import useImage from "use-image";
 import { RxCorners } from "react-icons/rx";
+import { icons } from "@/lib/icons";
+import type { Icon } from "@/types/IconTypes";
 
 type MapProps = {
     floor: Floor;
+    draggedIconRef: RefObject<string>;
 };
 
 const IMAGE_WIDTH = 3840;
@@ -16,17 +25,20 @@ const IMAGE_HEIGHT = 2160;
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 10;
 const BOUNCE_DURATION = 0.2;
-const BOUNDARY_PERCENTAGE = 0.1; // Percentage of the map that should always be visible on the screen
+const BOUNDARY_PERCENTAGE = 0.2; // Percentage of the map that should always be visible on the screen
 
 export default function MapKonva(props: MapProps) {
-    const { floor } = props;
+    const { floor, draggedIconRef } = props;
     const { mapName } = useMap();
     const [map] = useImage(`/${mapName}/${floor}.png`);
     const [baseMap] = useImage(`/${mapName}/base.png`);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
-    const imageRef = useRef<Konva.Image>(null);
+    const baseMapRef = useRef<Konva.Image>(null);
     const groupRef = useRef<Konva.Group>(null);
+    const [iconsToDraw, setIconsToDraw] = useState<
+        { x: number; y: number; src: Icon }[]
+    >([]);
 
     const sceneWidthRef = useRef(IMAGE_WIDTH);
     const sceneHeightRef = useRef(IMAGE_HEIGHT);
@@ -178,7 +190,7 @@ export default function MapKonva(props: MapProps) {
     const handleDragBoundFunc = (pos: { x: number; y: number }) => {
         const group = groupRef.current;
         const stage = stageRef.current;
-        const image = imageRef.current;
+        const image = baseMapRef.current;
         if (!group || !stage || !image) return pos;
 
         const minX = BOUNDARY_PERCENTAGE * stage.width();
@@ -201,8 +213,15 @@ export default function MapKonva(props: MapProps) {
         return { x: newX, y: newY };
     };
 
-    const handleDragEnd = (e: KonvaEventObject<DragEvent, Konva.Node>) => {
+    const handleBackgroundDragEnd = (
+        e: KonvaEventObject<globalThis.DragEvent>,
+    ) => {
         const element = e.target;
+
+        // Only handle drag end if the target is the Group itself (not child elements)
+        if (element !== groupRef.current) {
+            return;
+        }
 
         const pos = {
             x: e.target.x(),
@@ -237,8 +256,30 @@ export default function MapKonva(props: MapProps) {
         });
     };
 
+    const handleIconDrop = (e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const group = groupRef.current;
+        const stage = stageRef.current;
+        if (!group || !stage) return;
+        stage.setPointersPositions(e);
+        setIconsToDraw(
+            iconsToDraw.concat([
+                {
+                    ...group.getRelativePointerPosition()!,
+                    src: draggedIconRef.current as Icon,
+                },
+            ]),
+        );
+    };
+
     return (
-        <div ref={containerRef} className="relative h-full">
+        <div
+            ref={containerRef}
+            className="relative h-full"
+            onDrop={(e) => handleIconDrop(e)}
+            onDragOver={(e) => e.preventDefault()}
+            onDragEnter={(e) => e.preventDefault()}
+        >
             <div className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
                 <RxCorners
                     className="h-full w-full p-2"
@@ -250,17 +291,26 @@ export default function MapKonva(props: MapProps) {
                     <Group
                         ref={groupRef}
                         draggable
-                        onDragEnd={(e) => handleDragEnd(e)}
+                        onDragEnd={(e) => handleBackgroundDragEnd(e)}
                     >
-                        <Image image={baseMap} ref={imageRef} />
+                        <Image image={baseMap} ref={baseMapRef} />
                         <Image image={map} />
-                        <Circle
-                            x={200}
-                            y={100}
-                            radius={50}
-                            fill="green"
-                            draggable
-                        />
+                        <Group>
+                            {iconsToDraw.map((icon) => {
+                                return (
+                                    <Path
+                                        draggable
+                                        x={icon.x}
+                                        y={icon.y}
+                                        offsetX={250}
+                                        offsetY={250}
+                                        scale={{ x: 0.2, y: 0.2 }}
+                                        data={icons[icon.src]}
+                                        fill={"blue"}
+                                    />
+                                );
+                            })}
+                        </Group>
                     </Group>
                 </Layer>
             </Stage>
