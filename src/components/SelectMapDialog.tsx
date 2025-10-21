@@ -3,6 +3,7 @@ import {
     DialogContent,
     DialogOverlay,
     DialogPortal,
+    DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,13 @@ export default function SelectMapDialog() {
                     className="z-1100"
                     onClick={() => setIsOpen(false)}
                 >
-                    <DialogContent className="z-1100 h-4/5 sm:max-w-10/12">
+                    <DialogContent
+                        className="z-1100 h-4/5 sm:max-w-10/12"
+                        aria-describedby={undefined}
+                    >
+                        <DialogTitle className="hidden">
+                            Available Maps
+                        </DialogTitle>
                         <div className="grid grid-cols-4">
                             {availableMaps.map((mapName: MapName) => {
                                 return (
@@ -37,6 +44,7 @@ export default function SelectMapDialog() {
                                             setMapName(mapName);
                                             setIsOpen(false);
                                         }}
+                                        key={mapName}
                                     >
                                         {mapName}
                                     </div>

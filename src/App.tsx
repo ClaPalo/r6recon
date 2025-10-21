@@ -13,7 +13,7 @@ function App() {
         <>
             <MapProvider>
                 <div className="flex h-screen w-screen flex-col">
-                    <Navbar onFloorSelected={setFloor} />
+                    <Navbar floor={floor} onFloorSelected={setFloor} />
                     <div className="flex w-screen flex-1 flex-row">
                         <div className="h-full">
                             <Sidebar />

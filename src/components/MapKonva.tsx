@@ -11,15 +11,18 @@ type MapProps = {
     floor: Floor;
 };
 
-const IMAGE_WIDTH = 1600;
-const IMAGE_HEIGHT = 900;
+const IMAGE_WIDTH = 3840;
+const IMAGE_HEIGHT = 2160;
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 10;
+const BOUNCE_DURATION = 0.2;
+const BOUNDARY_PERCENTAGE = 0.1; // Percentage of the map that should always be visible on the screen
 
 export default function MapKonva(props: MapProps) {
     const { floor } = props;
     const { mapName } = useMap();
-    const [map] = useImage(`/${mapName}/${floor}.jpg`);
+    const [map] = useImage(`/${mapName}/${floor}.png`);
+    const [baseMap] = useImage(`/${mapName}/base.png`);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
     const imageRef = useRef<Konva.Image>(null);
@@ -90,16 +93,13 @@ export default function MapKonva(props: MapProps) {
         const shiftX = Number(moveX) * direction * moveBy;
         const shiftY = Number(!moveX) * direction * moveBy;
 
-        const tentativeRelativePosition = {
+        const pos = {
             x: group.position().x + shiftX,
             y: group.position().y + shiftY,
         };
 
-        const newAbsolutePosition = handleDragBoundFunc(
-            toAbsolute(tentativeRelativePosition),
-        );
-
-        group.position(toRelative(newAbsolutePosition));
+        // Move the group to the tentative position
+        moveToRelativePosition(group, pos);
     };
 
     const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
@@ -181,10 +181,10 @@ export default function MapKonva(props: MapProps) {
         const image = imageRef.current;
         if (!group || !stage || !image) return pos;
 
-        const minX = 0.1 * stage.width();
-        const minY = 0.1 * stage.height();
-        const maxX = 0.9 * stage.width();
-        const maxY = 0.9 * stage.height();
+        const minX = BOUNDARY_PERCENTAGE * stage.width();
+        const minY = BOUNDARY_PERCENTAGE * stage.height();
+        const maxX = (1 - BOUNDARY_PERCENTAGE) * stage.width();
+        const maxY = (1 - BOUNDARY_PERCENTAGE) * stage.height();
 
         const newX =
             Math.max(
@@ -201,6 +201,42 @@ export default function MapKonva(props: MapProps) {
         return { x: newX, y: newY };
     };
 
+    const handleDragEnd = (e: KonvaEventObject<DragEvent, Konva.Node>) => {
+        const element = e.target;
+
+        const pos = {
+            x: e.target.x(),
+            y: e.target.y(),
+        };
+
+        moveToRelativePosition(element, pos);
+    };
+
+    const moveToRelativePosition = (
+        node: Konva.Node,
+        tentativeRelativePosition: { x: number; y: number },
+    ) => {
+        // Move the group to the tentative position
+        node.position(tentativeRelativePosition);
+
+        // Check if it was a valid position
+        const newAbsolutePosition = handleDragBoundFunc(
+            toAbsolute(tentativeRelativePosition),
+        );
+
+        if (toRelative(newAbsolutePosition) != tentativeRelativePosition) {
+            bounceBackTo(node, toRelative(newAbsolutePosition));
+        }
+    };
+
+    const bounceBackTo = (node: Konva.Node, pos: { x: number; y: number }) => {
+        node.to({
+            x: pos.x,
+            y: pos.y,
+            duration: BOUNCE_DURATION,
+        });
+    };
+
     return (
         <div ref={containerRef} className="relative h-full">
             <div className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
@@ -214,9 +250,10 @@ export default function MapKonva(props: MapProps) {
                     <Group
                         ref={groupRef}
                         draggable
-                        dragBoundFunc={handleDragBoundFunc}
+                        onDragEnd={(e) => handleDragEnd(e)}
                     >
-                        <Image image={map} ref={imageRef} />
+                        <Image image={baseMap} ref={imageRef} />
+                        <Image image={map} />
                         <Circle
                             x={200}
                             y={100}

@@ -1,32 +1,36 @@
-import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import type { Floor } from "@/types/MapTypes";
 import useMap from "@/contexts/MapContext";
 import { floors } from "@/config/mapsConfig";
 import upperFirst from "lodash.upperfirst";
+import { useEffect } from "react";
 
 type FloorPickerProps = {
+    floor: Floor;
     onFloorSelected: React.Dispatch<React.SetStateAction<Floor>>;
 };
 
 export default function FloorPicker(props: FloorPickerProps) {
-    const { onFloorSelected } = props;
+    const { floor, onFloorSelected } = props;
     const { mapName } = useMap();
 
     const availableFloors = floors[mapName];
 
-    const [selectedFloor, setSelectedFloor] = useState<Floor>("first");
+    useEffect(() => {
+        if (availableFloors && !availableFloors?.includes(floor)) {
+            onFloorSelected(availableFloors[0]);
+        }
+    }, [floor, availableFloors, onFloorSelected]);
 
     const handleFloorChange = (value: Floor) => {
         if (value) {
-            setSelectedFloor(value);
             onFloorSelected(value);
         }
     };
 
     return (
         <ToggleGroup
-            value={selectedFloor}
+            value={floor}
             onValueChange={handleFloorChange}
             type="single"
             variant="outline"
