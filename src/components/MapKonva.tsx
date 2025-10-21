@@ -14,6 +14,8 @@ import useImage from "use-image";
 import { RxCorners } from "react-icons/rx";
 import { icons } from "@/lib/icons";
 import type { Icon } from "@/types/IconTypes";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { RiDeleteBin6Line } from "react-icons/ri";
 
 type MapProps = {
     floor: Floor;
@@ -280,12 +282,32 @@ export default function MapKonva(props: MapProps) {
             onDragOver={(e) => e.preventDefault()}
             onDragEnter={(e) => e.preventDefault()}
         >
-            <div className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
-                <RxCorners
-                    className="h-full w-full p-2"
-                    onClick={restoreDefaultPositionAndScale}
-                />
-            </div>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
+                        <RxCorners
+                            className="h-full w-full p-2"
+                            onClick={restoreDefaultPositionAndScale}
+                        />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                    <p>Resize</p>
+                </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="absolute top-16 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
+                        <RiDeleteBin6Line
+                            className="h-full w-full p-2"
+                            onClick={() => setIconsToDraw([])}
+                        />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                    <p>Remove all icons</p>
+                </TooltipContent>
+            </Tooltip>
             <Stage ref={stageRef} onWheel={handleWheel}>
                 <Layer>
                     <Group
