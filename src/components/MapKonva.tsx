@@ -1,341 +1,66 @@
 import useMap from "@/contexts/MapContext";
 import type { Floor } from "@/types/MapTypes";
 import type Konva from "konva";
-import type { KonvaEventObject } from "konva/lib/Node";
-import {
-    useEffect,
-    useRef,
-    useState,
-    type DragEvent,
-    type RefObject,
-} from "react";
+import { useRef, type RefObject } from "react";
 import { Group, Image, Layer, Path, Stage } from "react-konva";
 import useImage from "use-image";
-import { RxCorners } from "react-icons/rx";
 import { icons } from "@/lib/icons";
-import type { Icon } from "@/types/IconTypes";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { RiDeleteBin6Line } from "react-icons/ri";
-import { Html } from "react-konva-utils";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import type { Vector2d } from "konva/lib/types";
-import { Circle } from "@uiw/react-color";
+import { useStageControls } from "./MapKonva/useStageControls";
+import { useIconManagement } from "./MapKonva/useIconManagement";
+import { usePopoverState } from "./MapKonva/usePopoverState";
+import { MapControls } from "./MapKonva/MapControls";
+import { IconColorPicker } from "./MapKonva/IconColorPicker";
 
 type MapProps = {
     floor: Floor;
     draggedIconRef: RefObject<string>;
 };
 
-type PopoverType = {
-    position: Vector2d;
-    isOpen: boolean;
-    isExpanded: boolean;
-    iconIndex: number;
-};
-
-const IMAGE_WIDTH = 3840;
-const IMAGE_HEIGHT = 2160;
-const BOUNCE_DURATION = 0.2;
-const BOUNDARY_PERCENTAGE = 0.2; // Percentage of the map that should always be visible on the screen
-
 export default function MapKonva(props: MapProps) {
     const { floor, draggedIconRef } = props;
     const { mapName } = useMap();
     const [map] = useImage(`/${mapName}/${floor}.png`);
     const [baseMap] = useImage(`/${mapName}/base.png`);
+
     const containerRef = useRef<HTMLDivElement | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
     const baseMapRef = useRef<Konva.Image>(null);
     const groupRef = useRef<Konva.Group>(null);
-    const [iconsToDraw, setIconsToDraw] = useState<
-        { x: number; y: number; src: Icon; color: string }[]
-    >([]);
-    const [popover, setPopover] = useState<PopoverType>({
-        position: { x: 0, y: 0 },
-        isOpen: false,
-        isExpanded: false,
-        iconIndex: 0,
+
+    const {
+        iconsToDraw,
+        cursorStyle,
+        handleIconDrop,
+        findIconAtPosition,
+        handleMouseMove,
+        updateIconPosition,
+        updateIconColor,
+        clearAllIcons,
+    } = useIconManagement({
+        groupRef: groupRef as RefObject<Konva.Group | null>,
+        stageRef: stageRef as RefObject<Konva.Stage | null>,
+        draggedIconRef,
     });
-    const [cursorStyle, setCursorStyle] = useState<"auto" | "pointer">("auto");
 
-    const sceneWidthRef = useRef(IMAGE_WIDTH);
-    const sceneHeightRef = useRef(IMAGE_HEIGHT);
+    const { popover, closePopover, openPopover } = usePopoverState(
+        iconsToDraw.length,
+    );
 
-    useEffect(() => {
-        resetStageSize();
-        window.addEventListener("resize", resetStageSize);
-
-        return () => {
-            window.removeEventListener("resize", resetStageSize);
-        };
-    }, []);
-
-    useEffect(() => {
-        // Close popover any time an icon is modified
-        closePopover();
-    }, [iconsToDraw]);
-
-    const closePopover = () => {
-        setPopover((prev) => {
-            return {
-                ...prev,
-                isOpen: false,
-            };
-        });
-    };
-
-    const restoreDefaultPositionAndScale = () => {
-        const group = groupRef.current;
-        const stage = stageRef.current;
-        if (!group || !stage) return;
-
-        resetStageSize();
-        group.position({ x: 0, y: 0 });
-    };
-
-    const resetStageSize = () => {
-        const container = containerRef.current;
-        const stage = stageRef.current;
-        if (!container || !stage) return;
-
-        const sceneWidth = sceneWidthRef.current;
-        const sceneHeight = sceneHeightRef.current;
-
-        // Get container width
-        const containerWidth = container.offsetWidth;
-        const containerHeight = container.offsetHeight;
-
-        // Calculate scale
-        const scaleWidth = containerWidth / sceneWidth;
-        const scaleHeight = containerHeight / sceneHeight;
-
-        // Update state with new dimensions
-        stage.width(sceneWidth * scaleWidth);
-        stage.height(sceneHeight * scaleHeight);
-        stage.scale({ x: scaleWidth, y: scaleWidth });
-    };
-
-    const handlePan = (
-        e: KonvaEventObject<WheelEvent>,
-        axis: "x" | "y",
-        delta: number,
-    ) => {
-        const moveBy = 7.5;
-        const group = groupRef.current;
-        const stage = stageRef.current;
-        if (!group || !stage) return;
-
-        let moveX = axis == "x" ? true : false;
-        if (e.evt.altKey) {
-            moveX = !moveX;
-        }
-        let direction = delta > 0 ? -1 : 1;
-        if (e.evt.ctrlKey) {
-            direction = -direction;
-        }
-
-        const shiftX = Number(moveX) * direction * moveBy;
-        const shiftY = Number(!moveX) * direction * moveBy;
-
-        const pos = {
-            x: group.position().x + shiftX,
-            y: group.position().y + shiftY,
-        };
-
-        // Move the group to the tentative position
-        moveToRelativePosition(group, pos);
-    };
-
-    const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
-        e.evt.preventDefault();
-        closePopover();
-        const stage = stageRef.current;
-        const group = groupRef.current;
-        if (!stage || !group) return;
-
-        if (e.evt.deltaX) {
-            // Horizontal wheel -> pan
-            handlePan(e, "x", e.evt.deltaX);
-        } else {
-            // Vertical wheel
-            if (e.evt.metaKey) {
-                handlePan(e, "y", e.evt.deltaY);
-                return;
-            }
-            const oldScale = stage.scaleX();
-            const pointer = stage.getPointerPosition();
-
-            if (!pointer) return;
-
-            const mousePointTo = {
-                x: pointer.x / oldScale - group.x(),
-                y: pointer.y / oldScale - group.y(),
-            };
-
-            let direction = e.evt.deltaY > 0 ? -1 : 1;
-
-            if (e.evt.ctrlKey || e.evt.altKey) {
-                direction = -direction;
-            }
-
-            const scaleBy = 1.05;
-            const newScale =
-                direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-
-            stage.scale({ x: newScale, y: newScale });
-            const newPos = {
-                x: pointer.x / newScale - mousePointTo.x,
-                y: pointer.y / newScale - mousePointTo.y,
-            };
-
-            const newAbsolutePosition = handleDragBoundFunc(toAbsolute(newPos));
-
-            group.position(toRelative(newAbsolutePosition));
-        }
-    };
-
-    const toRelative = (absolutePosition: Vector2d) => {
-        const stage = stageRef.current;
-        if (!stage) return { x: 0, y: 0 };
-
-        return {
-            x: absolutePosition.x / stage.scaleX(),
-            y: absolutePosition.y / stage.scaleY(),
-        };
-    };
-
-    const toAbsolute = (relativePosition: Vector2d) => {
-        const stage = stageRef.current;
-        if (!stage) return { x: 0, y: 0 };
-
-        return {
-            x: relativePosition.x * stage.scaleX(),
-            y: relativePosition.y * stage.scaleY(),
-        };
-    };
-
-    const handleDragBoundFunc = (pos: Vector2d) => {
-        const group = groupRef.current;
-        const stage = stageRef.current;
-        const image = baseMapRef.current;
-        if (!group || !stage || !image) return pos;
-
-        const minX = BOUNDARY_PERCENTAGE * stage.width();
-        const minY = BOUNDARY_PERCENTAGE * stage.height();
-        const maxX = (1 - BOUNDARY_PERCENTAGE) * stage.width();
-        const maxY = (1 - BOUNDARY_PERCENTAGE) * stage.height();
-
-        const newX =
-            Math.max(
-                minX,
-                Math.min(pos.x, maxX) + image.width() * stage.scaleX(),
-            ) -
-            image.width() * stage.scaleX();
-        const newY =
-            Math.max(
-                minY,
-                Math.min(pos.y, maxY) + image.height() * stage.scaleY(),
-            ) -
-            image.height() * stage.scaleY();
-        return { x: newX, y: newY };
-    };
-
-    const handleBackgroundDragEnd = (
-        e: KonvaEventObject<globalThis.DragEvent>,
-    ) => {
-        const element = e.target;
-
-        // Only handle drag end if the target is the Group itself (not child elements)
-        if (element !== groupRef.current) {
-            return;
-        }
-
-        const pos = {
-            x: e.target.x(),
-            y: e.target.y(),
-        };
-
-        moveToRelativePosition(element, pos);
-    };
-
-    const moveToRelativePosition = (
-        node: Konva.Node,
-        tentativeRelativePosition: Vector2d,
-    ) => {
-        // Move the group to the tentative position
-        node.position(tentativeRelativePosition);
-
-        // Check if it was a valid position
-        const newAbsolutePosition = handleDragBoundFunc(
-            toAbsolute(tentativeRelativePosition),
-        );
-
-        if (toRelative(newAbsolutePosition) != tentativeRelativePosition) {
-            bounceBackTo(node, toRelative(newAbsolutePosition));
-        }
-    };
-
-    const bounceBackTo = (node: Konva.Node, pos: Vector2d) => {
-        node.to({
-            x: pos.x,
-            y: pos.y,
-            duration: BOUNCE_DURATION,
-        });
-    };
-
-    const handleIconDrop = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const group = groupRef.current;
-        const stage = stageRef.current;
-        if (!group || !stage) return;
-        stage.setPointersPositions(e);
-        setIconsToDraw(
-            iconsToDraw.concat([
-                {
-                    ...group.getRelativePointerPosition()!,
-                    src: draggedIconRef.current as Icon,
-                    color: "#fffff",
-                },
-            ]),
-        );
-    };
-
-    const isOnIcon = (pos: Vector2d, updatePopoverIndex: boolean) => {
-        const iconIndex = iconsToDraw.findIndex((icon) => {
-            return (
-                pos.x >= icon.x - 50 &&
-                pos.x <= icon.x + 50 &&
-                pos.y >= icon.y - 50 &&
-                pos.y <= icon.y + 50
-            );
-        });
-        if (iconIndex == -1) return false;
-
-        if (updatePopoverIndex) {
-            setPopover((prev) => {
-                return {
-                    ...prev,
-                    iconIndex: iconIndex,
-                };
-            });
-        }
-        return true;
-    };
-
-    const handleMouseMove = () => {
-        const group = groupRef.current;
-        if (!group) return;
-
-        const mousePosition = group.getRelativePointerPosition()!;
-        if (isOnIcon(mousePosition, false)) setCursorStyle("pointer");
-        else setCursorStyle("auto");
-    };
+    const {
+        handleWheel,
+        handleBackgroundDragEnd,
+        restoreDefaultPositionAndScale,
+    } = useStageControls({
+        containerRef: containerRef as RefObject<HTMLDivElement | null>,
+        stageRef: stageRef as RefObject<Konva.Stage | null>,
+        groupRef: groupRef as RefObject<Konva.Group | null>,
+        baseMapRef: baseMapRef as RefObject<Konva.Image | null>,
+        onPanOrZoom: closePopover,
+    });
 
     const handleStageClick = () => {
         if (popover.isOpen) {
-            setPopover((prev) => {
-                return { ...prev, isOpen: false };
-            });
+            closePopover();
             return;
         }
 
@@ -343,14 +68,12 @@ export default function MapKonva(props: MapProps) {
         if (!group) return;
 
         const mousePosition = group.getRelativePointerPosition()!;
-        if (isOnIcon(mousePosition, true)) {
-            setPopover((prev) => {
-                return { ...prev, position: mousePosition, isOpen: true };
-            });
+        const iconIndex = findIconAtPosition(mousePosition);
+
+        if (iconIndex !== -1) {
+            openPopover(mousePosition, iconIndex);
         } else {
-            setPopover((prev) => {
-                return { ...prev, isOpen: false };
-            });
+            closePopover();
         }
     };
 
@@ -365,32 +88,10 @@ export default function MapKonva(props: MapProps) {
                 cursor: cursorStyle,
             }}
         >
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="bg-secondary absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2">
-                        <RxCorners
-                            className="h-full w-full p-2"
-                            onClick={restoreDefaultPositionAndScale}
-                        />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                    <p>Resize</p>
-                </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="bg-secondary absolute top-16 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2">
-                        <RiDeleteBin6Line
-                            className="h-full w-full p-2"
-                            onClick={() => setIconsToDraw([])}
-                        />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                    <p>Remove all icons</p>
-                </TooltipContent>
-            </Tooltip>
+            <MapControls
+                onRestore={restoreDefaultPositionAndScale}
+                onClearAll={clearAllIcons}
+            />
             <Stage
                 ref={stageRef}
                 onWheel={handleWheel}
@@ -421,160 +122,23 @@ export default function MapKonva(props: MapProps) {
                                         fill={icon.color}
                                         onDragEnd={(e) => {
                                             const newPos = e.target.position();
-                                            setIconsToDraw((prev) =>
-                                                prev.map(
-                                                    (prevIcon, prevIndex) =>
-                                                        prevIndex === index
-                                                            ? {
-                                                                  ...prevIcon,
-                                                                  x: newPos.x,
-                                                                  y: newPos.y,
-                                                              }
-                                                            : prevIcon,
-                                                ),
-                                            );
+                                            updateIconPosition(index, newPos);
                                         }}
                                         onDragMove={() => closePopover()}
                                     />
                                 );
                             })}
-                            <Html
-                                groupProps={{
-                                    x: popover.position.x,
-                                    y: popover.position.y,
-                                }}
-                            >
-                                <Popover open={popover.isOpen}>
-                                    <PopoverTrigger></PopoverTrigger>
-                                    <PopoverContent className="flex h-16 max-h-56 w-35 flex-col items-start justify-start gap-3 rounded-none p-4 transition-all ease-in-out">
-                                        <div>
-                                            <Circle
-                                                color={
-                                                    iconsToDraw[
-                                                        popover.iconIndex
-                                                    ]?.color || "#fffff"
-                                                }
-                                                colors={[
-                                                    "#60a5fa",
-                                                    "#3b82f6",
-                                                    "#2563eb",
-                                                    "#1d4ed8",
-                                                ]}
-                                                style={{
-                                                    gap: 1,
-                                                    borderRadius: 0,
-                                                    display: "grid",
-                                                    gridTemplateColumns:
-                                                        "repeat(4, minmax(0, 1fr))",
-                                                }}
-                                                onChange={(color) =>
-                                                    setIconsToDraw((prev) =>
-                                                        prev.map(
-                                                            (
-                                                                prevIcon,
-                                                                prevIndex,
-                                                            ) =>
-                                                                prevIndex ===
-                                                                popover.iconIndex
-                                                                    ? {
-                                                                          ...prevIcon,
-                                                                          color: color.hex,
-                                                                      }
-                                                                    : prevIcon,
-                                                        ),
-                                                    )
-                                                }
-                                                rectProps={{
-                                                    style: {
-                                                        borderRadius: 1,
-                                                        height: 15,
-                                                        backgroundColor:
-                                                            iconsToDraw[
-                                                                popover
-                                                                    .iconIndex
-                                                            ]?.color ||
-                                                            "#fffff",
-                                                    },
-                                                }}
-                                                pointProps={{
-                                                    style: {
-                                                        height: 10,
-                                                        borderRadius: 1,
-                                                        padding: 0,
-                                                    },
-                                                }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <Circle
-                                                color={
-                                                    iconsToDraw[
-                                                        popover.iconIndex
-                                                    ]?.color || "#fffff"
-                                                }
-                                                colors={[
-                                                    "#ef4444",
-                                                    "#dc2626",
-                                                    "#b91c1c",
-                                                    "#991b1b",
-                                                ]}
-                                                style={{
-                                                    gap: 1,
-                                                    borderRadius: 0,
-                                                    display: "grid",
-                                                    gridTemplateColumns:
-                                                        "repeat(4, minmax(0, 1fr))",
-                                                }}
-                                                onChange={(color) =>
-                                                    setIconsToDraw((prev) =>
-                                                        prev.map(
-                                                            (
-                                                                prevIcon,
-                                                                prevIndex,
-                                                            ) =>
-                                                                prevIndex ===
-                                                                popover.iconIndex
-                                                                    ? {
-                                                                          ...prevIcon,
-                                                                          color: color.hex,
-                                                                      }
-                                                                    : prevIcon,
-                                                        ),
-                                                    )
-                                                }
-                                                rectProps={{
-                                                    style: {
-                                                        borderRadius: 1,
-                                                        height: 15,
-                                                        backgroundColor:
-                                                            iconsToDraw[
-                                                                popover
-                                                                    .iconIndex
-                                                            ]?.color ||
-                                                            "#fffff",
-                                                    },
-                                                }}
-                                                pointProps={{
-                                                    style: {
-                                                        height: 10,
-                                                        borderRadius: 1,
-                                                        padding: 0,
-                                                    },
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="h-5 w-full">
-                                            {/* <Slider
-                                                color={color}
-                                                onChange={(color) => setColor(color.hex)}
-                                                customColorShades={[
-                                                    { color: "3b82f6", lightness: [120, 100, 80, 60, 50] },
-                                                  ]}
-                                            /> */}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                            </Html>
+                            <IconColorPicker
+                                isOpen={popover.isOpen}
+                                position={popover.position}
+                                currentColor={
+                                    iconsToDraw[popover.iconIndex]?.color ||
+                                    "#fffff"
+                                }
+                                onColorChange={(color) =>
+                                    updateIconColor(popover.iconIndex, color)
+                                }
+                            />
                         </Group>
                     </Group>
                 </Layer>
