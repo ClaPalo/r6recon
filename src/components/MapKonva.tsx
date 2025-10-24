@@ -19,6 +19,7 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { Html } from "react-konva-utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import type { Vector2d } from "konva/lib/types";
+import { Circle } from "@uiw/react-color";
 
 type MapProps = {
     floor: Floor;
@@ -27,8 +28,9 @@ type MapProps = {
 
 type PopoverType = {
     position: Vector2d;
-    isActive: boolean;
+    isOpen: boolean;
     isExpanded: boolean;
+    iconIndex: number;
 };
 
 const IMAGE_WIDTH = 3840;
@@ -46,13 +48,13 @@ export default function MapKonva(props: MapProps) {
     const baseMapRef = useRef<Konva.Image>(null);
     const groupRef = useRef<Konva.Group>(null);
     const [iconsToDraw, setIconsToDraw] = useState<
-        { x: number; y: number; src: Icon }[]
+        { x: number; y: number; src: Icon; color: string }[]
     >([]);
-
     const [popover, setPopover] = useState<PopoverType>({
         position: { x: 0, y: 0 },
-        isActive: false,
+        isOpen: false,
         isExpanded: false,
+        iconIndex: 0,
     });
     const [cursorStyle, setCursorStyle] = useState<"auto" | "pointer">("auto");
 
@@ -67,6 +69,20 @@ export default function MapKonva(props: MapProps) {
             window.removeEventListener("resize", resetStageSize);
         };
     }, []);
+
+    useEffect(() => {
+        // Close popover any time an icon is modified
+        closePopover();
+    }, [iconsToDraw]);
+
+    const closePopover = () => {
+        setPopover((prev) => {
+            return {
+                ...prev,
+                isOpen: false,
+            };
+        });
+    };
 
     const restoreDefaultPositionAndScale = () => {
         const group = groupRef.current;
@@ -132,7 +148,7 @@ export default function MapKonva(props: MapProps) {
 
     const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
         e.evt.preventDefault();
-
+        closePopover();
         const stage = stageRef.current;
         const group = groupRef.current;
         if (!stage || !group) return;
@@ -278,13 +294,14 @@ export default function MapKonva(props: MapProps) {
                 {
                     ...group.getRelativePointerPosition()!,
                     src: draggedIconRef.current as Icon,
+                    color: "#fffff",
                 },
             ]),
         );
     };
 
-    const isOnIcon = (pos: Vector2d) => {
-        return iconsToDraw.some((icon) => {
+    const isOnIcon = (pos: Vector2d, updatePopoverIndex: boolean) => {
+        const iconIndex = iconsToDraw.findIndex((icon) => {
             return (
                 pos.x >= icon.x - 50 &&
                 pos.x <= icon.x + 50 &&
@@ -292,6 +309,17 @@ export default function MapKonva(props: MapProps) {
                 pos.y <= icon.y + 50
             );
         });
+        if (iconIndex == -1) return false;
+
+        if (updatePopoverIndex) {
+            setPopover((prev) => {
+                return {
+                    ...prev,
+                    iconIndex: iconIndex,
+                };
+            });
+        }
+        return true;
     };
 
     const handleMouseMove = () => {
@@ -299,14 +327,14 @@ export default function MapKonva(props: MapProps) {
         if (!group) return;
 
         const mousePosition = group.getRelativePointerPosition()!;
-        if (isOnIcon(mousePosition)) setCursorStyle("pointer");
+        if (isOnIcon(mousePosition, false)) setCursorStyle("pointer");
         else setCursorStyle("auto");
     };
 
     const handleStageClick = () => {
-        if (popover.isActive) {
+        if (popover.isOpen) {
             setPopover((prev) => {
-                return { ...prev, isActive: false };
+                return { ...prev, isOpen: false };
             });
             return;
         }
@@ -315,13 +343,13 @@ export default function MapKonva(props: MapProps) {
         if (!group) return;
 
         const mousePosition = group.getRelativePointerPosition()!;
-        if (isOnIcon(mousePosition)) {
+        if (isOnIcon(mousePosition, true)) {
             setPopover((prev) => {
-                return { ...prev, position: mousePosition, isActive: true };
+                return { ...prev, position: mousePosition, isOpen: true };
             });
         } else {
             setPopover((prev) => {
-                return { ...prev, isActive: false };
+                return { ...prev, isOpen: false };
             });
         }
     };
@@ -374,6 +402,7 @@ export default function MapKonva(props: MapProps) {
                         ref={groupRef}
                         draggable
                         onDragEnd={(e) => handleBackgroundDragEnd(e)}
+                        onDragMove={() => closePopover()}
                     >
                         <Image image={baseMap} ref={baseMapRef} />
                         <Image image={map} />
@@ -389,7 +418,7 @@ export default function MapKonva(props: MapProps) {
                                         offsetY={250}
                                         scale={{ x: 0.2, y: 0.2 }}
                                         data={icons[icon.src]}
-                                        fill={"blue"}
+                                        fill={icon.color}
                                         onDragEnd={(e) => {
                                             const newPos = e.target.position();
                                             setIconsToDraw((prev) =>
@@ -405,6 +434,7 @@ export default function MapKonva(props: MapProps) {
                                                 ),
                                             );
                                         }}
+                                        onDragMove={() => closePopover()}
                                     />
                                 );
                             })}
@@ -414,12 +444,133 @@ export default function MapKonva(props: MapProps) {
                                     y: popover.position.y,
                                 }}
                             >
-                                <Popover open={popover.isActive}>
+                                <Popover open={popover.isOpen}>
                                     <PopoverTrigger></PopoverTrigger>
-                                    <PopoverContent className="flex h-96 max-h-16 w-35 flex-row items-start justify-around rounded-none transition-all ease-in-out">
-                                        <div className="h-7 w-7 rounded-full bg-blue-500"></div>
-                                        <div className="bg-secondary flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-1">
-                                            <RiDeleteBin6Line className="h-full w-full p-1" />
+                                    <PopoverContent className="flex h-16 max-h-56 w-35 flex-col items-start justify-start gap-3 rounded-none p-4 transition-all ease-in-out">
+                                        <div>
+                                            <Circle
+                                                color={
+                                                    iconsToDraw[
+                                                        popover.iconIndex
+                                                    ]?.color || "#fffff"
+                                                }
+                                                colors={[
+                                                    "#60a5fa",
+                                                    "#3b82f6",
+                                                    "#2563eb",
+                                                    "#1d4ed8",
+                                                ]}
+                                                style={{
+                                                    gap: 1,
+                                                    borderRadius: 0,
+                                                    display: "grid",
+                                                    gridTemplateColumns:
+                                                        "repeat(4, minmax(0, 1fr))",
+                                                }}
+                                                onChange={(color) =>
+                                                    setIconsToDraw((prev) =>
+                                                        prev.map(
+                                                            (
+                                                                prevIcon,
+                                                                prevIndex,
+                                                            ) =>
+                                                                prevIndex ===
+                                                                popover.iconIndex
+                                                                    ? {
+                                                                          ...prevIcon,
+                                                                          color: color.hex,
+                                                                      }
+                                                                    : prevIcon,
+                                                        ),
+                                                    )
+                                                }
+                                                rectProps={{
+                                                    style: {
+                                                        borderRadius: 1,
+                                                        height: 15,
+                                                        backgroundColor:
+                                                            iconsToDraw[
+                                                                popover
+                                                                    .iconIndex
+                                                            ]?.color ||
+                                                            "#fffff",
+                                                    },
+                                                }}
+                                                pointProps={{
+                                                    style: {
+                                                        height: 10,
+                                                        borderRadius: 1,
+                                                        padding: 0,
+                                                    },
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Circle
+                                                color={
+                                                    iconsToDraw[
+                                                        popover.iconIndex
+                                                    ]?.color || "#fffff"
+                                                }
+                                                colors={[
+                                                    "#ef4444",
+                                                    "#dc2626",
+                                                    "#b91c1c",
+                                                    "#991b1b",
+                                                ]}
+                                                style={{
+                                                    gap: 1,
+                                                    borderRadius: 0,
+                                                    display: "grid",
+                                                    gridTemplateColumns:
+                                                        "repeat(4, minmax(0, 1fr))",
+                                                }}
+                                                onChange={(color) =>
+                                                    setIconsToDraw((prev) =>
+                                                        prev.map(
+                                                            (
+                                                                prevIcon,
+                                                                prevIndex,
+                                                            ) =>
+                                                                prevIndex ===
+                                                                popover.iconIndex
+                                                                    ? {
+                                                                          ...prevIcon,
+                                                                          color: color.hex,
+                                                                      }
+                                                                    : prevIcon,
+                                                        ),
+                                                    )
+                                                }
+                                                rectProps={{
+                                                    style: {
+                                                        borderRadius: 1,
+                                                        height: 15,
+                                                        backgroundColor:
+                                                            iconsToDraw[
+                                                                popover
+                                                                    .iconIndex
+                                                            ]?.color ||
+                                                            "#fffff",
+                                                    },
+                                                }}
+                                                pointProps={{
+                                                    style: {
+                                                        height: 10,
+                                                        borderRadius: 1,
+                                                        padding: 0,
+                                                    },
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="h-5 w-full">
+                                            {/* <Slider
+                                                color={color}
+                                                onChange={(color) => setColor(color.hex)}
+                                                customColorShades={[
+                                                    { color: "3b82f6", lightness: [120, 100, 80, 60, 50] },
+                                                  ]}
+                                            /> */}
                                         </div>
                                     </PopoverContent>
                                 </Popover>
