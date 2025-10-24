@@ -1,9 +1,8 @@
-import React from "react";
 import { AiFillEye } from "react-icons/ai";
 import { FaBomb, FaRunning } from "react-icons/fa";
 import { GiAk47 } from "react-icons/gi";
 import { IoBagSharp } from "react-icons/io5";
-import ColorPicker from "./ColorPicker";
+import ColorPicker from "@/components/ColorPicker";
 import type { Icon } from "@/types/IconTypes";
 
 type SidebarProps = {

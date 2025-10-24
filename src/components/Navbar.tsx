@@ -1,6 +1,6 @@
 import type { Floor } from "@/types/MapTypes";
-import SelectMapDialog from "./SelectMapDialog";
-import FloorPicker from "./FloorPicker";
+import SelectMapDialog from "@/components/SelectMapDialog";
+import FloorPicker from "@/components/FloorPicker";
 
 type NavbarProps = {
     floor: Floor;
