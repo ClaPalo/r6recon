@@ -110,8 +110,7 @@ export const useStageControls = ({
         );
 
         if (
-            JSON.stringify(toRelative(newAbsolutePosition, stage)) !==
-            JSON.stringify(tentativeRelativePosition)
+            toRelative(newAbsolutePosition, stage) !== tentativeRelativePosition
         ) {
             bounceBackTo(node, toRelative(newAbsolutePosition, stage));
         }
@@ -130,31 +129,17 @@ export const useStageControls = ({
         });
     };
 
-    const handleWheelPan = (
-        e: KonvaEventObject<WheelEvent>,
-        axis: "x" | "y",
-        delta: number,
-    ) => {
-        const moveBy = 7.5;
+    const handleWheelPan = (e: KonvaEventObject<WheelEvent>) => {
         const group = groupRef.current;
         const stage = stageRef.current;
         if (!group || !stage) return;
 
-        let moveX = axis === "x" ? true : false;
-        if (e.evt.altKey) {
-            moveX = !moveX;
-        }
-        let direction = delta > 0 ? -1 : 1;
-        if (e.evt.ctrlKey) {
-            direction = -direction;
-        }
-
-        const shiftX = Number(moveX) * direction * moveBy;
-        const shiftY = Number(!moveX) * direction * moveBy;
+        const dx = -e.evt.deltaX;
+        const dy = -e.evt.deltaY;
 
         const pos = {
-            x: group.position().x + shiftX,
-            y: group.position().y + shiftY,
+            x: group.position().x + dx,
+            y: group.position().y + dy,
         };
 
         moveToRelativePosition(group, pos);
@@ -167,48 +152,42 @@ export const useStageControls = ({
         const stage = stageRef.current;
         const group = groupRef.current;
         if (!stage || !group) return;
-
-        if (e.evt.deltaX && !e.evt.metaKey) {
-            // Horizontal wheel -> pan
-            handleWheelPan(e, "x", e.evt.deltaX);
-        } else {
-            // Vertical wheel
-            if (!e.evt.metaKey) {
-                handleWheelPan(e, "y", e.evt.deltaY);
-                return;
-            }
-            const oldScale = stage.scaleX();
-            const pointer = stage.getPointerPosition();
-
-            if (!pointer) return;
-
-            const mousePointTo = {
-                x: pointer.x / oldScale - group.x(),
-                y: pointer.y / oldScale - group.y(),
-            };
-
-            let direction = e.evt.deltaY > 0 ? -1 : 1;
-
-            if (e.evt.ctrlKey || e.evt.altKey) {
-                direction = -direction;
-            }
-
-            const scaleBy = 1.05;
-            const newScale =
-                direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-
-            stage.scale({ x: newScale, y: newScale });
-            const newPos = {
-                x: pointer.x / newScale - mousePointTo.x,
-                y: pointer.y / newScale - mousePointTo.y,
-            };
-
-            const newAbsolutePosition = handleDragBoundFunc(
-                toAbsolute(newPos, stage),
-            );
-
-            group.position(toRelative(newAbsolutePosition, stage));
+        // Vertical wheel
+        if (!e.evt.metaKey) {
+            handleWheelPan(e);
+            return;
         }
+        const oldScale = stage.scaleX();
+        const pointer = stage.getPointerPosition();
+
+        if (!pointer) return;
+
+        const mousePointTo = {
+            x: pointer.x / oldScale - group.x(),
+            y: pointer.y / oldScale - group.y(),
+        };
+
+        let direction = e.evt.deltaY > 0 ? -1 : 1;
+
+        if (e.evt.ctrlKey || e.evt.altKey) {
+            direction = -direction;
+        }
+
+        const scaleBy = 1.05;
+        const newScale =
+            direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+        stage.scale({ x: newScale, y: newScale });
+        const newPos = {
+            x: pointer.x / newScale - mousePointTo.x,
+            y: pointer.y / newScale - mousePointTo.y,
+        };
+
+        const newAbsolutePosition = handleDragBoundFunc(
+            toAbsolute(newPos, stage),
+        );
+
+        group.position(toRelative(newAbsolutePosition, stage));
     };
 
     const handleBackgroundDragEnd = (

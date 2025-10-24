@@ -18,7 +18,7 @@ function App() {
     return (
         <>
             <MapProvider>
-                <div className="flex h-screen w-screen flex-col">
+                <div className="flex h-screen w-screen flex-col overflow-hidden">
                     <Navbar floor={floor} onFloorSelected={setFloor} />
                     <div className="flex w-screen flex-1 flex-row">
                         <div className="h-full">
