@@ -168,12 +168,12 @@ export const useStageControls = ({
         const group = groupRef.current;
         if (!stage || !group) return;
 
-        if (e.evt.deltaX) {
+        if (e.evt.deltaX && !e.evt.metaKey) {
             // Horizontal wheel -> pan
             handleWheelPan(e, "x", e.evt.deltaX);
         } else {
             // Vertical wheel
-            if (e.evt.metaKey) {
+            if (!e.evt.metaKey) {
                 handleWheelPan(e, "y", e.evt.deltaY);
                 return;
             }
