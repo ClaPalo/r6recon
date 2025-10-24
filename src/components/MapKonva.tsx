@@ -16,6 +16,8 @@ import { icons } from "@/lib/icons";
 import type { Icon } from "@/types/IconTypes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { RiDeleteBin6Line } from "react-icons/ri";
+import { Html } from "react-konva-utils";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 type MapProps = {
     floor: Floor;
@@ -24,8 +26,6 @@ type MapProps = {
 
 const IMAGE_WIDTH = 3840;
 const IMAGE_HEIGHT = 2160;
-const MIN_SCALE = 0.3;
-const MAX_SCALE = 10;
 const BOUNCE_DURATION = 0.2;
 const BOUNDARY_PERCENTAGE = 0.2; // Percentage of the map that should always be visible on the screen
 
@@ -41,6 +41,12 @@ export default function MapKonva(props: MapProps) {
     const [iconsToDraw, setIconsToDraw] = useState<
         { x: number; y: number; src: Icon }[]
     >([]);
+    const [isIconMenuActive, setIsIconMenuActive] = useState<boolean>(false);
+    const [iconMenuPosition, setIconMenuPosition] = useState<{
+        x: number;
+        y: number;
+    }>({ x: 0, y: 0 });
+    const [cursorStyle, setCursorStyle] = useState<"auto" | "pointer">("auto");
 
     const sceneWidthRef = useRef(IMAGE_WIDTH);
     const sceneHeightRef = useRef(IMAGE_HEIGHT);
@@ -132,7 +138,6 @@ export default function MapKonva(props: MapProps) {
                 handlePan(e, "y", e.evt.deltaY);
                 return;
             }
-
             const oldScale = stage.scaleX();
             const pointer = stage.getPointerPosition();
 
@@ -153,19 +158,15 @@ export default function MapKonva(props: MapProps) {
             const newScale =
                 direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
 
-            if (newScale >= MIN_SCALE && newScale <= MAX_SCALE) {
-                stage.scale({ x: newScale, y: newScale });
-                const newPos = {
-                    x: pointer.x / newScale - mousePointTo.x,
-                    y: pointer.y / newScale - mousePointTo.y,
-                };
+            stage.scale({ x: newScale, y: newScale });
+            const newPos = {
+                x: pointer.x / newScale - mousePointTo.x,
+                y: pointer.y / newScale - mousePointTo.y,
+            };
 
-                const newAbsolutePosition = handleDragBoundFunc(
-                    toAbsolute(newPos),
-                );
+            const newAbsolutePosition = handleDragBoundFunc(toAbsolute(newPos));
 
-                group.position(toRelative(newAbsolutePosition));
-            }
+            group.position(toRelative(newAbsolutePosition));
         }
     };
 
@@ -274,6 +275,44 @@ export default function MapKonva(props: MapProps) {
         );
     };
 
+    const isOnIcon = (pos: { x: number; y: number }) => {
+        return iconsToDraw.some((icon) => {
+            return (
+                pos.x >= icon.x - 50 &&
+                pos.x <= icon.x + 50 &&
+                pos.y >= icon.y - 50 &&
+                pos.y <= icon.y + 50
+            );
+        });
+    };
+
+    const handleMouseMove = () => {
+        const group = groupRef.current;
+        if (!group) return;
+
+        const mousePosition = group.getRelativePointerPosition()!;
+        if (isOnIcon(mousePosition)) setCursorStyle("pointer");
+        else setCursorStyle("auto");
+    };
+
+    const handleStageClick = () => {
+        if (isIconMenuActive) {
+            setIsIconMenuActive(false);
+            return;
+        }
+
+        const group = groupRef.current;
+        if (!group) return;
+
+        const mousePosition = group.getRelativePointerPosition()!;
+        if (isOnIcon(mousePosition)) {
+            setIsIconMenuActive(true);
+            setIconMenuPosition(mousePosition);
+        } else {
+            setIsIconMenuActive(false);
+        }
+    };
+
     return (
         <div
             ref={containerRef}
@@ -281,6 +320,9 @@ export default function MapKonva(props: MapProps) {
             onDrop={(e) => handleIconDrop(e)}
             onDragOver={(e) => e.preventDefault()}
             onDragEnter={(e) => e.preventDefault()}
+            style={{
+                cursor: cursorStyle,
+            }}
         >
             <Tooltip>
                 <TooltipTrigger asChild>
@@ -308,7 +350,12 @@ export default function MapKonva(props: MapProps) {
                     <p>Remove all icons</p>
                 </TooltipContent>
             </Tooltip>
-            <Stage ref={stageRef} onWheel={handleWheel}>
+            <Stage
+                ref={stageRef}
+                onWheel={handleWheel}
+                onMouseMove={handleMouseMove}
+                onClick={handleStageClick}
+            >
                 <Layer>
                     <Group
                         ref={groupRef}
@@ -318,9 +365,10 @@ export default function MapKonva(props: MapProps) {
                         <Image image={baseMap} ref={baseMapRef} />
                         <Image image={map} />
                         <Group>
-                            {iconsToDraw.map((icon) => {
+                            {iconsToDraw.map((icon, index) => {
                                 return (
                                     <Path
+                                        key={`${icon.x}-${icon.y}-${index}`}
                                         draggable
                                         x={icon.x}
                                         y={icon.y}
@@ -329,9 +377,37 @@ export default function MapKonva(props: MapProps) {
                                         scale={{ x: 0.2, y: 0.2 }}
                                         data={icons[icon.src]}
                                         fill={"blue"}
+                                        onDragEnd={(e) => {
+                                            const newPos = e.target.position();
+                                            setIconsToDraw((prev) =>
+                                                prev.map(
+                                                    (prevIcon, prevIndex) =>
+                                                        prevIndex === index
+                                                            ? {
+                                                                  ...prevIcon,
+                                                                  x: newPos.x,
+                                                                  y: newPos.y,
+                                                              }
+                                                            : prevIcon,
+                                                ),
+                                            );
+                                        }}
                                     />
                                 );
                             })}
+                            <Html
+                                groupProps={{
+                                    x: iconMenuPosition.x,
+                                    y: iconMenuPosition.y,
+                                }}
+                            >
+                                <Popover open={isIconMenuActive}>
+                                    <PopoverTrigger></PopoverTrigger>
+                                    <PopoverContent>
+                                        <p>Gay lol</p>
+                                    </PopoverContent>
+                                </Popover>
+                            </Html>
                         </Group>
                     </Group>
                 </Layer>
