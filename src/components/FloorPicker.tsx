@@ -33,11 +33,16 @@ export default function FloorPicker(props: FloorPickerProps) {
             value={floor}
             onValueChange={handleFloorChange}
             type="single"
-            variant="outline"
+            variant="default"
+            className="gap-5"
         >
             {availableFloors?.map((floor) => {
                 return (
-                    <ToggleGroupItem value={floor} key={floor} className="px-5">
+                    <ToggleGroupItem
+                        value={floor}
+                        key={floor}
+                        className="data-[state=on]:border-accent h-16 border-b-6 border-transparent px-5 pt-2 data-[state=on]:bg-transparent"
+                    >
                         {upperFirst(floor)}
                     </ToggleGroupItem>
                 );

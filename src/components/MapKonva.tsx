@@ -327,7 +327,7 @@ export default function MapKonva(props: MapProps) {
         >
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className="absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
+                    <div className="bg-secondary absolute top-3 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2">
                         <RxCorners
                             className="h-full w-full p-2"
                             onClick={restoreDefaultPositionAndScale}
@@ -340,7 +340,7 @@ export default function MapKonva(props: MapProps) {
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className="absolute top-16 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 bg-[#0f172a]">
+                    <div className="bg-secondary absolute top-16 right-3 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2">
                         <RiDeleteBin6Line
                             className="h-full w-full p-2"
                             onClick={() => setIconsToDraw([])}

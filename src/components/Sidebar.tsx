@@ -13,7 +13,7 @@ export default function Sidebar(props: SidebarProps) {
     const { handleDragStart } = props;
 
     return (
-        <div className="flex h-full w-20 flex-col items-center justify-start gap-5 border-r-1 border-solid border-slate-800 p-5">
+        <div className="flex h-full w-20 flex-col items-center justify-start gap-5 border-r-4 border-solid border-slate-800 p-5">
             <ColorPicker />
             <div draggable onDragStart={() => handleDragStart("running")}>
                 <FaRunning

@@ -20,7 +20,11 @@ export default function SelectMapDialog() {
     return (
         <Dialog open={isOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" onClick={() => setIsOpen(true)}>
+                <Button
+                    variant="outline"
+                    className="rounded-none border-2 p-5"
+                    onClick={() => setIsOpen(true)}
+                >
                     Choose Map
                 </Button>
             </DialogTrigger>
