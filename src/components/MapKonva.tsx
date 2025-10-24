@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { Html } from "react-konva-utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import type { Vector2d } from "konva/lib/types";
 
 type MapProps = {
     floor: Floor;
@@ -42,10 +43,10 @@ export default function MapKonva(props: MapProps) {
         { x: number; y: number; src: Icon }[]
     >([]);
     const [isIconMenuActive, setIsIconMenuActive] = useState<boolean>(false);
-    const [iconMenuPosition, setIconMenuPosition] = useState<{
-        x: number;
-        y: number;
-    }>({ x: 0, y: 0 });
+    const [iconMenuPosition, setIconMenuPosition] = useState<Vector2d>({
+        x: 0,
+        y: 0,
+    });
     const [cursorStyle, setCursorStyle] = useState<"auto" | "pointer">("auto");
 
     const sceneWidthRef = useRef(IMAGE_WIDTH);
@@ -170,7 +171,7 @@ export default function MapKonva(props: MapProps) {
         }
     };
 
-    const toRelative = (absolutePosition: { x: number; y: number }) => {
+    const toRelative = (absolutePosition: Vector2d) => {
         const stage = stageRef.current;
         if (!stage) return { x: 0, y: 0 };
 
@@ -180,7 +181,7 @@ export default function MapKonva(props: MapProps) {
         };
     };
 
-    const toAbsolute = (relativePosition: { x: number; y: number }) => {
+    const toAbsolute = (relativePosition: Vector2d) => {
         const stage = stageRef.current;
         if (!stage) return { x: 0, y: 0 };
 
@@ -190,7 +191,7 @@ export default function MapKonva(props: MapProps) {
         };
     };
 
-    const handleDragBoundFunc = (pos: { x: number; y: number }) => {
+    const handleDragBoundFunc = (pos: Vector2d) => {
         const group = groupRef.current;
         const stage = stageRef.current;
         const image = baseMapRef.current;
@@ -236,7 +237,7 @@ export default function MapKonva(props: MapProps) {
 
     const moveToRelativePosition = (
         node: Konva.Node,
-        tentativeRelativePosition: { x: number; y: number },
+        tentativeRelativePosition: Vector2d,
     ) => {
         // Move the group to the tentative position
         node.position(tentativeRelativePosition);
@@ -251,7 +252,7 @@ export default function MapKonva(props: MapProps) {
         }
     };
 
-    const bounceBackTo = (node: Konva.Node, pos: { x: number; y: number }) => {
+    const bounceBackTo = (node: Konva.Node, pos: Vector2d) => {
         node.to({
             x: pos.x,
             y: pos.y,
@@ -275,7 +276,7 @@ export default function MapKonva(props: MapProps) {
         );
     };
 
-    const isOnIcon = (pos: { x: number; y: number }) => {
+    const isOnIcon = (pos: Vector2d) => {
         return iconsToDraw.some((icon) => {
             return (
                 pos.x >= icon.x - 50 &&
