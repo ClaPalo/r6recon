@@ -1,3 +1,5 @@
+export type Icon = "gun" | "running" | "bomb" | "defuser" | "eye";
+
 export type MapName =
     | "bank"
     | "border"

@@ -7,9 +7,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { MapName } from "@/types/MapTypes";
+import type { MapName } from "@/types/index";
 import { useState } from "react";
-import useMap from "@/contexts/MapContext";
+import useMap from "@/hooks/useMap";
 import { floors } from "@/config/mapsConfig";
 
 // TODO: Add component for each map

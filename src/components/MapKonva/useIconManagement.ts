@@ -1,7 +1,7 @@
 import { useState, type DragEvent, type RefObject } from "react";
 import type Konva from "konva";
 import type { Vector2d } from "konva/lib/types";
-import type { Icon } from "@/types/IconTypes";
+import type { Icon } from "@/types/index";
 import { isPositionOnIcon } from "./utils";
 
 export interface DrawnIcon {
@@ -37,7 +37,7 @@ export const useIconManagement = ({
                 {
                     ...group.getRelativePointerPosition()!,
                     src: draggedIconRef.current as Icon,
-                    color: "#fffff",
+                    color: "#ffffff",
                 },
             ]),
         );

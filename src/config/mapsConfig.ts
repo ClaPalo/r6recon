@@ -1,4 +1,4 @@
-import type { MapName, Floor } from "../types/MapTypes";
+import type { MapName, Floor } from "../types/index";
 
 export const floors: Partial<Record<MapName, Floor[]>> = {
     bank: ["basement", "ground", "first", "roof"],

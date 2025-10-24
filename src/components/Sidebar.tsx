@@ -3,7 +3,7 @@ import { FaBomb, FaRunning } from "react-icons/fa";
 import { GiAk47 } from "react-icons/gi";
 import { IoBagSharp } from "react-icons/io5";
 import ColorPicker from "@/components/ColorPicker";
-import type { Icon } from "@/types/IconTypes";
+import type { Icon } from "@/types/index";
 
 type SidebarProps = {
     handleDragStart: (icon: Icon) => void;

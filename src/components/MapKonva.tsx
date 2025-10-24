@@ -1,5 +1,4 @@
-import useMap from "@/contexts/MapContext";
-import type { Floor } from "@/types/MapTypes";
+import useMap from "@/hooks/useMap";
 import type Konva from "konva";
 import { useRef, type RefObject } from "react";
 import { Group, Image, Layer, Path, Stage } from "react-konva";
@@ -12,13 +11,12 @@ import { MapControls } from "./MapKonva/MapControls";
 import { IconColorPicker } from "./MapKonva/IconColorPicker";
 
 type MapProps = {
-    floor: Floor;
     draggedIconRef: RefObject<string>;
 };
 
 export default function MapKonva(props: MapProps) {
-    const { floor, draggedIconRef } = props;
-    const { mapName } = useMap();
+    const { draggedIconRef } = props;
+    const { mapName, floor } = useMap();
     const [map] = useImage(`/${mapName}/${floor}.png`);
     const [baseMap] = useImage(`/${mapName}/base.png`);
 
@@ -133,7 +131,7 @@ export default function MapKonva(props: MapProps) {
                                 position={popover.position}
                                 currentColor={
                                     iconsToDraw[popover.iconIndex]?.color ||
-                                    "#fffff"
+                                    "#ffffff"
                                 }
                                 onColorChange={(color) =>
                                     updateIconColor(popover.iconIndex, color)

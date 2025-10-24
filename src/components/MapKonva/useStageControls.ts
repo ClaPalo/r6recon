@@ -71,6 +71,8 @@ export const useStageControls = ({
         const stage = stageRef.current;
         if (!group || !stage) return;
 
+        onPanOrZoom?.();
+
         resetStageSize();
         group.position({ x: 0, y: 0 });
     };
