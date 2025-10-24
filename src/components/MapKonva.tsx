@@ -25,6 +25,12 @@ type MapProps = {
     draggedIconRef: RefObject<string>;
 };
 
+type PopoverType = {
+    position: Vector2d;
+    isActive: boolean;
+    isExpanded: boolean;
+};
+
 const IMAGE_WIDTH = 3840;
 const IMAGE_HEIGHT = 2160;
 const BOUNCE_DURATION = 0.2;
@@ -42,10 +48,11 @@ export default function MapKonva(props: MapProps) {
     const [iconsToDraw, setIconsToDraw] = useState<
         { x: number; y: number; src: Icon }[]
     >([]);
-    const [isIconMenuActive, setIsIconMenuActive] = useState<boolean>(false);
-    const [iconMenuPosition, setIconMenuPosition] = useState<Vector2d>({
-        x: 0,
-        y: 0,
+
+    const [popover, setPopover] = useState<PopoverType>({
+        position: { x: 0, y: 0 },
+        isActive: false,
+        isExpanded: false,
     });
     const [cursorStyle, setCursorStyle] = useState<"auto" | "pointer">("auto");
 
@@ -297,8 +304,10 @@ export default function MapKonva(props: MapProps) {
     };
 
     const handleStageClick = () => {
-        if (isIconMenuActive) {
-            setIsIconMenuActive(false);
+        if (popover.isActive) {
+            setPopover((prev) => {
+                return { ...prev, isActive: false };
+            });
             return;
         }
 
@@ -307,10 +316,13 @@ export default function MapKonva(props: MapProps) {
 
         const mousePosition = group.getRelativePointerPosition()!;
         if (isOnIcon(mousePosition)) {
-            setIsIconMenuActive(true);
-            setIconMenuPosition(mousePosition);
+            setPopover((prev) => {
+                return { ...prev, position: mousePosition, isActive: true };
+            });
         } else {
-            setIsIconMenuActive(false);
+            setPopover((prev) => {
+                return { ...prev, isActive: false };
+            });
         }
     };
 
@@ -398,14 +410,17 @@ export default function MapKonva(props: MapProps) {
                             })}
                             <Html
                                 groupProps={{
-                                    x: iconMenuPosition.x,
-                                    y: iconMenuPosition.y,
+                                    x: popover.position.x,
+                                    y: popover.position.y,
                                 }}
                             >
-                                <Popover open={isIconMenuActive}>
+                                <Popover open={popover.isActive}>
                                     <PopoverTrigger></PopoverTrigger>
-                                    <PopoverContent>
-                                        <p>Gay lol</p>
+                                    <PopoverContent className="flex h-96 max-h-16 w-35 flex-row items-start justify-around rounded-none transition-all ease-in-out">
+                                        <div className="h-7 w-7 rounded-full bg-blue-500"></div>
+                                        <div className="bg-secondary flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-1">
+                                            <RiDeleteBin6Line className="h-full w-full p-1" />
+                                        </div>
                                     </PopoverContent>
                                 </Popover>
                             </Html>

@@ -22,7 +22,7 @@ export default function SelectMapDialog() {
             <DialogTrigger asChild>
                 <Button
                     variant="outline"
-                    className="rounded-none border-2 p-5"
+                    className="cursor-pointer rounded-none border-2 p-5"
                     onClick={() => setIsOpen(true)}
                 >
                     Choose Map
